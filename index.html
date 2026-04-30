@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Peigen Nexus / 培根人脉星图</title>
+    <link rel="icon" href="./ico/图标.png" />
+    <link rel="stylesheet" href="./styles.css?v=20260430-21" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <img src="./ico/图标.png" alt="" />
+        </div>
+        <div>
+          <p class="eyebrow">Peigen Nexus</p>
+          <h1>培根人脉星图</h1>
+        </div>
+      </div>
+      <nav class="nav-list" aria-label="主导航">
+        <button class="nav-item is-active" type="button" data-view="dashboard" data-nav-group="dashboard">总览</button>
+        <button class="nav-item" type="button" data-view="strategy" data-nav-group="workspace">关系资产</button>
+        <button class="nav-item" type="button" data-view="why" data-nav-group="method">方法框架</button>
+      </nav>
+      <div class="header-actions">
+        <label class="accent-control" aria-label="界面强调色">
+          <span>风格</span>
+          <select id="accentSelect">
+            <option value="appleBlue">系统蓝</option>
+            <option value="applePurple">系统紫</option>
+            <option value="applePink">系统粉</option>
+            <option value="appleRed">系统红</option>
+            <option value="appleOrange">系统橙</option>
+            <option value="appleYellow">系统黄</option>
+            <option value="appleGreen">系统绿</option>
+            <option value="appleTeal">系统青</option>
+            <option value="custom">自定义</option>
+          </select>
+        </label>
+        <input id="customAccentInput" class="color-input" type="color" value="#155eef" aria-label="自定义强调色" />
+        <button id="themeToggle" class="icon-text-button" type="button" aria-label="切换白天和黑夜主题">
+          <span class="theme-icon" aria-hidden="true"></span>
+          <span id="themeLabel">黑夜</span>
+        </button>
+        <button id="newTaskBtn" class="secondary-button" type="button">创建维护行动</button>
+        <button id="newArchiveBtn" class="primary-button" type="button">新增档案</button>
+      </div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <section class="page-hero">
+        <div>
+          <p class="eyebrow">Local Intelligence · Relationship Asset System</p>
+          <h2 id="viewTitle">关系资产总览</h2>
+        </div>
+        <div class="hero-actions">
+          <button id="exportBtn" class="ghost-button" type="button">导出数据</button>
+          <label class="ghost-button file-button">
+            导入数据
+            <input id="importInput" type="file" accept="application/json" />
+          </label>
+        </div>
+      </section>
+      <div id="sectionTabs" class="section-tabs" aria-label="模块内切换"></div>
+
+      <section id="dashboardView" class="view is-visible" aria-labelledby="viewTitle">
+        <div class="dashboard-command">
+          <section class="panel dashboard-summary">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Command Center</p>
+                <h3>关系资产驾驶舱</h3>
+                <p class="section-help">集中查看战略定位、人脉档案、155 黄金圈和维护行动的当前状态。</p>
+              </div>
+            </div>
+            <div class="metric-grid" id="metricGrid"></div>
+            <div class="workflow-card">
+              <div class="workflow-card-head">
+                <div>
+                  <p class="eyebrow">Operating Flow</p>
+                  <h4>核心流程进度</h4>
+                </div>
+                <button class="text-button" type="button" data-view-jump="playbook">查看路径</button>
+              </div>
+              <div id="workflowProgress" class="workflow-progress"></div>
+            </div>
+          </section>
+
+          <section class="panel priority-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Priority Queue</p>
+                <h3>待处理事项</h3>
+              </div>
+              <button class="text-button" type="button" data-view-jump="actions">查看全部</button>
+            </div>
+            <div id="todayActions" class="task-list"></div>
+          </section>
+        </div>
+
+        <div class="dashboard-lower-grid">
+          <section class="panel compact-dashboard-panel compact-dashboard-panel--circle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">155 Circle</p>
+                <h3>黄金圈概况</h3>
+                <p class="section-help">按命友、密友、好友查看容量使用情况。</p>
+              </div>
+            </div>
+            <div id="circleOverview" class="circle-overview"></div>
+          </section>
+
+          <section class="panel compact-dashboard-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">System Signals</p>
+                <h3>系统建议</h3>
+              </div>
+            </div>
+            <div id="systemSignals" class="insight-list"></div>
+          </section>
+
+          <section class="panel compact-dashboard-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Archive</p>
+                <h3>归档质量</h3>
+              </div>
+            </div>
+            <div id="archiveHealth" class="insight-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="strategyView" class="view" aria-labelledby="viewTitle">
+        <div class="strategy-layout">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Strategic Positioning</p>
+                <h3>关系战略定位</h3>
+                <p class="section-help">用四个问题校准关系网络的方向：我想做什么？我服务谁？他们真正缺什么？因为我，他们会发生什么改变？</p>
+              </div>
+            </div>
+            <form id="strategyForm" class="strategy-form">
+              <label>长期方向<textarea id="strategyWant" rows="3" placeholder="定义当前阶段最重要的事业或成长方向"></textarea></label>
+              <label>关键服务对象<textarea id="strategyServe" rows="3" placeholder="明确最值得长期服务、协作或影响的人群"></textarea></label>
+              <label>核心需求缺口<textarea id="strategyNeed" rows="3" placeholder="识别对方真实缺口、约束、压力与机会"></textarea></label>
+              <label>可交付价值<textarea id="strategyChange" rows="3" placeholder="描述你能带来的具体改变、判断、资源或连接"></textarea></label>
+              <button class="primary-button" type="submit">保存战略定位</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Output</p>
+                <h3>定位摘要</h3>
+                <p class="section-help">这些信息会作为后续筛选关系、设计触达和安排维护行动的判断基础。</p>
+              </div>
+            </div>
+            <div id="strategyOutput" class="insight-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="whyView" class="view" aria-labelledby="viewTitle">
+        <div class="knowledge-layout">
+          <aside class="knowledge-toc" aria-label="方法框架目录">
+            <div class="toc-head">
+              <p class="eyebrow">Framework</p>
+              <h3>目录</h3>
+            </div>
+            <nav id="whyToc" class="toc-list"></nav>
+          </aside>
+          <article id="whyContent" class="knowledge-content"></article>
+        </div>
+      </section>
+
+      <section id="archiveView" class="view" aria-labelledby="viewTitle">
+        <p class="view-help">人脉档案用于记录基础归档字段；点击任意条目可查看对应的全息背景。</p>
+        <div class="toolbar">
+          <label class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.24 1.24-4.44-4.45A6.5 6.5 0 1 1 10.5 4Zm0 1.8a4.7 4.7 0 1 0 0 9.4 4.7 4.7 0 0 0 0-9.4Z" /></svg>
+            <input id="searchInput" type="search" placeholder="搜索姓名、角色、职业、行业、居住地、背景" />
+          </label>
+          <select id="tierFilter" aria-label="按分层筛选">
+            <option value="all">全部分层</option>
+            <option value="命友">命友</option>
+            <option value="密友">密友</option>
+            <option value="好友">好友</option>
+            <option value="普通">普通</option>
+          </select>
+          <select id="ecosystemFilter" aria-label="按生态圈筛选">
+            <option value="all">全部生态圈</option>
+            <option value="兴趣爱好">兴趣爱好</option>
+            <option value="工作相关">工作相关</option>
+            <option value="政府">政府</option>
+            <option value="金融">金融</option>
+            <option value="媒体">媒体</option>
+            <option value="社区">社区</option>
+          </select>
+          <div class="view-switch" aria-label="档案视图切换">
+            <button class="view-switch-button is-active" type="button" data-archive-layout="card">卡片</button>
+            <button class="view-switch-button" type="button" data-archive-layout="list">列表</button>
+          </div>
+        </div>
+        <div id="archiveGrid" class="archive-grid"></div>
+      </section>
+
+      <section id="circleView" class="view" aria-labelledby="viewTitle">
+        <p class="view-help">155 黄金圈用于管理最值得长期投入的关系：命友 5 人、密友 50 人、好友 100 人。先按真实影响力与亲密程度手动分层，再按层级安排维护频率。</p>
+        <div id="circleBoard" class="circle-board"></div>
+      </section>
+
+      <section id="actionsView" class="view" aria-labelledby="viewTitle">
+        <p class="view-help">维护行动用于把欣赏、分享、陪伴、推荐、支持、保护等关系动作转化为可跟进事项。先选择人脉档案，再建立具体行动。</p>
+        <div class="action-layout">
+          <section class="panel compact-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Action Builder</p>
+                <h3>创建维护行动</h3>
+              </div>
+            </div>
+            <div class="quick-action-grid" id="quickActionGrid"></div>
+          </section>
+        </div>
+        <div class="kanban" id="kanban"></div>
+      </section>
+
+      <section id="playbookView" class="view" aria-labelledby="viewTitle">
+        <div id="playbookList" class="playbook-list"></div>
+      </section>
+    </main>
+
+    <dialog id="archiveDialog" class="modal">
+      <form id="archiveForm" method="dialog">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Holographic Card</p>
+            <h3 id="archiveDialogTitle">新增人脉档案</h3>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="archiveDialog" aria-label="关闭人脉档案表单">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.7 5.3 5.3 5.29 5.3-5.3 1.4 1.42-5.29 5.29 5.3 5.3-1.42 1.4-5.29-5.29-5.3 5.3-1.4-1.42 5.29-5.29-5.3-5.3 1.42-1.4Z" /></svg>
+          </button>
+        </div>
+        <input id="personId" type="hidden" />
+        <div class="form-grid">
+          <label>姓名<input id="name" required autocomplete="name" /></label>
+          <label>角色<input id="role" placeholder="同学 / 前同事 / 朋友介绍" /></label>
+          <label>职业<input id="title" placeholder="产品经理 / 投资人" /></label>
+          <label>户籍<input id="household" placeholder="浙江杭州" /></label>
+          <label>居住地<input id="residence" placeholder="上海" /></label>
+          <label>行业<input id="industry" placeholder="AI / 金融 / 媒体" /></label>
+          <label>影响力
+            <select id="influence">
+              <option>弱</option>
+              <option>中</option>
+              <option>强</option>
+            </select>
+          </label>
+          <label>亲密程度
+            <select id="closeness">
+              <option>疏</option>
+              <option>中</option>
+              <option>密</option>
+            </select>
+          </label>
+          <label>生态圈
+            <select id="ecosystem">
+              <option>工作相关</option>
+              <option>兴趣爱好</option>
+              <option>政府</option>
+              <option>金融</option>
+              <option>媒体</option>
+              <option>社区</option>
+            </select>
+          </label>
+          <label>分层
+            <select id="tier">
+              <option>普通</option>
+              <option>好友</option>
+              <option>密友</option>
+              <option>命友</option>
+            </select>
+          </label>
+          <label class="span-2">相识记录<textarea id="meetRecord" rows="3" placeholder="第一次见面、介绍人、关键场景、后续互动"></textarea></label>
+          <label class="span-2">家庭信息<textarea id="family" rows="3" placeholder="家庭成员、家乡背景、重要关系"></textarea></label>
+          <label>特征<textarea id="traits" rows="3" placeholder="性格、表达方式、决策风格"></textarea></label>
+          <label>工作<textarea id="work" rows="3" placeholder="当前工作、项目、目标、压力"></textarea></label>
+          <label>爱好<textarea id="hobbies" rows="3" placeholder="兴趣爱好、长期投入的主题"></textarea></label>
+          <label>特殊细节<textarea id="details" rows="3" placeholder="重要日期、偏好、忌讳、值得记住的小事"></textarea></label>
+          <label class="span-2">给我的启发<textarea id="inspiration" rows="4" placeholder="对方给我的认知、方法、机会或人生启发"></textarea></label>
+        </div>
+        <p id="archiveError" class="form-error" role="alert"></p>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-dialog="archiveDialog">取消</button>
+          <button class="primary-button" type="submit">保存归档</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="profileDialog" class="modal profile-modal">
+      <div class="profile-card">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Holographic Profile</p>
+            <h3 id="profileTitle">全息背景卡</h3>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="profileDialog" aria-label="关闭全息背景卡">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.7 5.3 5.3 5.29 5.3-5.3 1.4 1.42-5.29 5.29 5.3 5.3-1.42 1.4-5.29-5.29-5.3 5.3-1.4-1.42 5.29-5.29-5.3-5.3 1.42-1.4Z" /></svg>
+          </button>
+        </div>
+        <div id="profileContent"></div>
+      </div>
+    </dialog>
+
+    <dialog id="taskDialog" class="modal">
+      <form id="taskForm" method="dialog">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Relationship Action</p>
+            <h3>创建维护行动</h3>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="taskDialog" aria-label="关闭行动表单">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.7 5.3 5.3 5.29 5.3-5.3 1.4 1.42-5.29 5.29 5.3 5.3-1.42 1.4-5.29-5.29-5.3 5.3-1.4-1.42 5.29-5.29-5.3-5.3 1.42-1.4Z" /></svg>
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="span-2">人脉档案<select id="taskPerson" required></select></label>
+          <label>行动类型
+            <select id="taskType">
+              <option>欣赏</option>
+              <option>分享</option>
+              <option>陪伴</option>
+              <option>推荐</option>
+              <option>支持</option>
+              <option>保护</option>
+              <option>24 小时跟进</option>
+              <option>优雅求助</option>
+              <option>引荐</option>
+            </select>
+          </label>
+          <label>计划日期<input id="taskDue" type="date" required /></label>
+          <label class="span-2">行动内容<textarea id="taskTitle" rows="3" required placeholder="例如：24 小时内感谢交流，补充一份对方有价值的资料，并提出下一次见面邀请"></textarea></label>
+        </div>
+        <p id="taskError" class="form-error" role="alert"></p>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-dialog="taskDialog">取消</button>
+          <button class="primary-button" type="submit">保存行动</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="confirmDialog" class="modal confirm-modal">
+      <div class="confirm-card">
+        <div>
+          <p id="confirmEyebrow" class="eyebrow">Confirm</p>
+          <h3 id="confirmTitle">确认操作</h3>
+          <p id="confirmMessage" class="confirm-message"></p>
+        </div>
+        <div class="modal-actions">
+          <button id="confirmCancelBtn" class="secondary-button" type="button">取消</button>
+          <button id="confirmOkBtn" class="primary-button" type="button">确认</button>
+        </div>
+      </div>
+    </dialog>
+
+    <button id="backToTopBtn" class="back-to-top" type="button" aria-label="回到顶部">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.5 5.5 12l1.42 1.42L11 9.34V20h2V9.34l4.08 4.08L18.5 12 12 5.5Z" /></svg>
+    </button>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js?v=20260430-21"></script>
+  </body>
+</html>
