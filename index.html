@@ -44,6 +44,7 @@
           <span class="theme-icon" aria-hidden="true"></span>
           <span id="themeLabel">黑夜</span>
         </button>
+        <button id="authStatusBtn" class="ghost-button auth-status-button" type="button">登录</button>
         <button id="newTaskBtn" class="secondary-button" type="button">创建维护行动</button>
         <button id="newArchiveBtn" class="primary-button" type="button">新增档案</button>
       </div>
@@ -56,6 +57,7 @@
           <h2 id="viewTitle">关系资产总览</h2>
         </div>
         <div class="hero-actions">
+          <button id="guideBtn" class="ghost-button" type="button">使用指南</button>
           <button id="exportBtn" class="ghost-button" type="button">导出数据</button>
           <button id="importBtn" class="ghost-button" type="button">导入数据</button>
           <input id="importInput" type="file" accept="application/json" hidden />
@@ -366,10 +368,95 @@
       </div>
     </dialog>
 
+    <dialog id="authDialog" class="modal auth-modal">
+      <form id="authForm" method="dialog" class="auth-card">
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h3>登录账号</h3>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="authDialog" aria-label="关闭登录窗口">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.7 5.3 5.3 5.29 5.3-5.3 1.4 1.42-5.29 5.29 5.3 5.3-1.42 1.4-5.29-5.29-5.3 5.3-1.4-1.42 5.29-5.29-5.3-5.3 1.42-1.4Z" /></svg>
+          </button>
+        </div>
+        <p class="auth-help">登录后，你的数据会自动同步到你的云端账号。没有账号可以直接注册。</p>
+        <div class="form-grid">
+          <label class="span-2">邮箱<input id="authEmail" type="email" autocomplete="email" required /></label>
+          <label class="span-2">密码<input id="authPassword" type="password" autocomplete="current-password" required minlength="6" /></label>
+        </div>
+        <p id="authError" class="form-error" role="alert"></p>
+        <div class="modal-actions">
+          <button id="signUpBtn" class="secondary-button" type="button">注册</button>
+          <button id="signInBtn" class="primary-button" type="submit">登录</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="guideDialog" class="modal guide-modal">
+      <div class="guide-card">
+        <div class="guide-hero">
+          <div class="guide-hero-copy">
+            <p class="eyebrow">Guide</p>
+            <h3>使用指南</h3>
+            <p>从目标定位开始，把联系人沉淀成可维护、可复盘、可行动的人脉资产。</p>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="guideDialog" aria-label="关闭使用指南">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.7 5.3 5.3 5.29 5.3-5.3 1.4 1.42-5.29 5.29 5.3 5.3-1.42 1.4-5.29-5.29-5.3 5.3-1.4-1.42 5.29-5.29-5.3-5.3 1.42-1.4Z" /></svg>
+          </button>
+        </div>
+        <div class="guide-content">
+          <div class="guide-flow" aria-label="核心使用流程">
+            <section class="guide-step">
+              <span class="guide-step-index">01</span>
+              <div>
+                <h4>先做战略定位</h4>
+                <p>写清楚你想做什么、服务谁、对方需要什么、你能带来什么改变。后面所有整理和维护都围绕这个方向展开。</p>
+              </div>
+            </section>
+            <section class="guide-step">
+              <span class="guide-step-index">02</span>
+              <div>
+                <h4>建立人脉档案</h4>
+                <p>把重要联系人录入档案，补充角色、行业、相识记录、关注点、家庭信息、特殊细节和给你的启发。</p>
+              </div>
+            </section>
+            <section class="guide-step">
+              <span class="guide-step-index">03</span>
+              <div>
+                <h4>用 155 黄金圈分层</h4>
+                <p>把关系分为命友、密友、好友三层。分层不是贴标签，而是帮你决定投入优先级和维护频率。</p>
+              </div>
+            </section>
+            <section class="guide-step">
+              <span class="guide-step-index">04</span>
+              <div>
+                <h4>创建维护行动</h4>
+                <p>安排欣赏、分享、陪伴、推荐、支持、保护、跟进或引荐，并写清楚具体要做什么和计划日期。</p>
+              </div>
+            </section>
+          </div>
+          <div class="guide-tips">
+            <section>
+              <h4>不知道下一步做什么</h4>
+              <p>去看“执行路径”，再回到档案或维护行动里落实一个小动作。</p>
+            </section>
+            <section>
+              <h4>担心数据丢失</h4>
+              <p>平时会自动保存；需要留备份时点“导出数据”。导入会覆盖当前数据，请确认版本后再操作。</p>
+            </section>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="primary-button" type="button" data-close-dialog="guideDialog">知道了</button>
+        </div>
+      </div>
+    </dialog>
+
     <button id="backToTopBtn" class="back-to-top" type="button" aria-label="回到顶部">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.5 5.5 12l1.42 1.42L11 9.34V20h2V9.34l4.08 4.08L18.5 12 12 5.5Z" /></svg>
     </button>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=20260501-05"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./app.js?v=20260501-07"></script>
   </body>
 </html>

@@ -73,6 +73,14 @@ function serveFile(req, res) {
 async function handleApi(req, res) {
   ensureDataFile();
 
+  if (req.url === "/api/config" && req.method === "GET") {
+    send(res, 200, JSON.stringify({
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+    }));
+    return;
+  }
+
   if (req.url === "/api/state" && req.method === "GET") {
     send(res, 200, fs.readFileSync(dataFile, "utf8"));
     return;

@@ -4,6 +4,7 @@ const ACCENT_KEY = "peigen-nexus-accent";
 const CUSTOM_ACCENT_KEY = "peigen-nexus-custom-accent";
 const BACKUP_APP = "Peigen Nexus";
 const BACKUP_SCHEMA_VERSION = 1;
+const CONFIG_API = "/api/config";
 const STATE_API = "/api/state";
 const EXPORT_API = "/api/export";
 
@@ -389,6 +390,9 @@ let archiveInitialSnapshot = "";
 let archiveSavingFromPrompt = false;
 let archiveLayout = localStorage.getItem("peigen-nexus-archive-layout") || "card";
 let pendingServerSave = Promise.resolve();
+let storageMode = "local";
+let supabaseClient = null;
+let currentUser = null;
 
 function normalizeState(parsed) {
   const strategy = {
@@ -476,7 +480,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  queueServerSave();
+  queueDataSave();
 }
 
 function createBackupPayload() {
@@ -552,6 +556,89 @@ function queueServerSave() {
     });
 }
 
+async function initStorage() {
+  try {
+    const response = await fetch(CONFIG_API, { cache: "no-store" });
+    const config = response.ok ? await response.json() : {};
+    const canUseSupabase = config.supabaseUrl && config.supabaseAnonKey && window.supabase?.createClient;
+    if (!canUseSupabase) {
+      storageMode = "local";
+      await loadStateFromServer();
+      updateAuthUi();
+      return;
+    }
+
+    storageMode = "cloud";
+    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+    const { data } = await supabaseClient.auth.getSession();
+    currentUser = data.session?.user || null;
+    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+      currentUser = session?.user || null;
+      updateAuthUi();
+      if (currentUser) {
+        await loadStateFromCloud();
+        render();
+      }
+    });
+    updateAuthUi();
+    if (currentUser) {
+      await loadStateFromCloud();
+    } else {
+      openAuthDialog();
+    }
+  } catch (error) {
+    console.error(error);
+    storageMode = "local";
+    await loadStateFromServer();
+    updateAuthUi();
+  }
+}
+
+async function loadStateFromCloud() {
+  if (!supabaseClient || !currentUser) return;
+  const { data, error } = await supabaseClient
+    .from("app_states")
+    .select("payload")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+  if (error) throw error;
+
+  if (data?.payload) {
+    const imported = readBackupPayload(data.payload);
+    state = imported.state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    applyImportedSettings(imported.settings);
+    return;
+  }
+
+  await saveStateToCloud();
+}
+
+async function saveStateToCloud() {
+  if (!supabaseClient || !currentUser) return;
+  const { error } = await supabaseClient
+    .from("app_states")
+    .upsert({
+      user_id: currentUser.id,
+      payload: createBackupPayload(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+  if (error) throw error;
+}
+
+function queueDataSave() {
+  if (storageMode === "cloud") {
+    pendingServerSave = pendingServerSave
+      .then(saveStateToCloud)
+      .catch((error) => {
+        console.error(error);
+        showToast("云端保存失败，请稍后重试");
+      });
+    return;
+  }
+  queueServerSave();
+}
+
 function downloadBackupFile() {
   const backup = createBackupPayload();
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
@@ -614,6 +701,58 @@ function showToast(message) {
   toast.classList.add("is-visible");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+}
+
+function updateAuthUi() {
+  const button = document.querySelector("#authStatusBtn");
+  if (!button) return;
+  if (storageMode !== "cloud") {
+    button.textContent = "本地模式";
+    button.disabled = true;
+    return;
+  }
+  button.disabled = false;
+  button.textContent = currentUser?.email || "登录";
+}
+
+function openAuthDialog() {
+  if (storageMode !== "cloud") return;
+  document.querySelector("#authError").textContent = "";
+  document.querySelector("#authDialog").showModal();
+  document.querySelector("#authEmail").focus();
+}
+
+function requireCloudUser() {
+  if (storageMode !== "cloud" || currentUser) return true;
+  openAuthDialog();
+  showToast("请先登录后再继续操作");
+  return false;
+}
+
+async function signIn() {
+  const email = document.querySelector("#authEmail").value.trim();
+  const password = document.querySelector("#authPassword").value;
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  document.querySelector("#authDialog").close();
+  showToast("登录成功");
+}
+
+async function signUp() {
+  const email = document.querySelector("#authEmail").value.trim();
+  const password = document.querySelector("#authPassword").value;
+  const { error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) throw error;
+  document.querySelector("#authDialog").close();
+  showToast("注册成功，请按提示完成邮箱确认");
+}
+
+async function signOut() {
+  if (!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  updateAuthUi();
+  openAuthDialog();
 }
 
 function groupForView(view) {
@@ -1459,6 +1598,18 @@ document.addEventListener("click", (event) => {
   if (!target) return;
 
   if (target.dataset.viewJump) setView(target.dataset.viewJump);
+  const needsLogin = target.dataset.editPerson
+    || target.dataset.createTask
+    || target.dataset.openTaskType
+    || target.dataset.createOutreach
+    || target.dataset.createGeneralAction
+    || target.dataset.deletePerson
+    || target.dataset.setTier
+    || target.dataset.completeTask
+    || target.dataset.postponeTask
+    || target.dataset.deleteTask;
+  if (needsLogin && !requireCloudUser()) return;
+
   if (target.dataset.closeDialog) {
     if (target.dataset.closeDialog === "archiveDialog") {
       requestCloseArchiveDialog();
@@ -1535,8 +1686,27 @@ document.addEventListener("click", (event) => {
   }
 });
 
-document.querySelector("#newArchiveBtn").addEventListener("click", () => openArchiveDialog());
-document.querySelector("#newTaskBtn").addEventListener("click", () => openTaskDialog());
+document.querySelector("#newArchiveBtn").addEventListener("click", () => {
+  if (requireCloudUser()) openArchiveDialog();
+});
+document.querySelector("#newTaskBtn").addEventListener("click", () => {
+  if (requireCloudUser()) openTaskDialog();
+});
+document.querySelector("#guideBtn").addEventListener("click", () => document.querySelector("#guideDialog").showModal());
+document.querySelector("#authStatusBtn").addEventListener("click", async () => {
+  if (storageMode !== "cloud") return;
+  if (!currentUser) {
+    openAuthDialog();
+    return;
+  }
+  const confirmed = await showConfirm({
+    title: "退出登录？",
+    message: "退出后需要重新登录才能查看云端数据。",
+    confirmText: "退出登录",
+    cancelText: "取消",
+  });
+  if (confirmed) signOut();
+});
 document.querySelector("#searchInput").addEventListener("input", renderArchive);
 document.querySelector("#tierFilter").addEventListener("change", renderArchive);
 document.querySelector("#ecosystemFilter").addEventListener("change", renderArchive);
@@ -1549,6 +1719,12 @@ document.querySelectorAll("[data-archive-layout]").forEach((button) => {
 });
 document.querySelector("#profileDialog").addEventListener("click", (event) => {
   if (event.target === event.currentTarget) event.currentTarget.close();
+});
+document.querySelector("#guideDialog").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) event.currentTarget.close();
+});
+document.querySelector("#authDialog").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget && currentUser) event.currentTarget.close();
 });
 document.querySelector("#archiveDialog").addEventListener("click", (event) => {
   if (event.target === event.currentTarget) requestCloseArchiveDialog();
@@ -1622,14 +1798,31 @@ document.querySelector("#taskForm").addEventListener("submit", (event) => {
   showToast("维护行动已创建");
 });
 
-document.querySelector("#exportBtn").addEventListener("click", () => {
-  window.location.href = EXPORT_API;
-});
+document.querySelector("#exportBtn").addEventListener("click", downloadBackupFile);
 document.querySelector("#importBtn").addEventListener("click", () => document.querySelector("#importInput").click());
+document.querySelector("#authForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await signIn();
+  } catch (error) {
+    document.querySelector("#authError").textContent = error.message || "登录失败";
+  }
+});
+document.querySelector("#signUpBtn").addEventListener("click", async () => {
+  try {
+    await signUp();
+  } catch (error) {
+    document.querySelector("#authError").textContent = error.message || "注册失败";
+  }
+});
 
 document.querySelector("#importInput").addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (!requireCloudUser()) {
+    event.target.value = "";
+    return;
+  }
   try {
     const imported = readBackupPayload(JSON.parse(await file.text()));
     const confirmed = await showConfirm({
@@ -1655,9 +1848,9 @@ document.querySelector("#importInput").addEventListener("change", async (event) 
 initTheme();
 initAccent();
 renderSectionTabs(activeView);
-loadStateFromServer()
+initStorage()
   .catch((error) => {
     console.error(error);
-    showToast("未连接本地数据服务，暂时使用浏览器缓存数据");
+    showToast("数据加载失败，暂时使用浏览器缓存数据");
   })
   .finally(render);
