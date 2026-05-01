@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "node scripts/build-static.js",
+    "vercel-build": "node scripts/build-static.js",
     "start": "node scripts/local-server.js"
   }
 }
