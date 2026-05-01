@@ -4,6 +4,9 @@
     "dev": "vite --host 0.0.0.0",
     "start": "node scripts/local-server.js"
   },
+  "dependencies": {
+    "mysql2": "^3.15.3"
+  },
   "devDependencies": {
     "vite": "^5.4.21"
   }

@@ -577,39 +577,16 @@ function queueServerSave() {
 
 async function initStorage() {
   try {
-    const response = await fetch(CONFIG_API, { cache: "no-store" });
-    const config = response.ok ? await response.json() : {};
-    const canUseSupabase = config.supabaseUrl && config.supabaseAnonKey && window.supabase?.createClient;
-    if (!canUseSupabase) {
-      storageMode = "local";
-      await loadStateFromServer();
-      updateAuthUi();
-      return;
-    }
-
-    storageMode = "cloud";
-    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-    const { data } = await supabaseClient.auth.getSession();
-    currentUser = data.session?.user || null;
-    supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-      currentUser = session?.user || null;
-      updateAuthUi();
-      if (currentUser) {
-        await loadStateFromCloud();
-        render();
-      }
-    });
+    storageMode = "local";
+    currentUser = null;
+    supabaseClient = null;
+    await loadStateFromServer();
     updateAuthUi();
-    if (currentUser) {
-      await loadStateFromCloud();
-    } else {
-      openAuthDialog();
-    }
   } catch (error) {
     console.error(error);
     storageMode = "local";
-    await loadStateFromServer();
     updateAuthUi();
+    throw error;
   }
 }
 
@@ -726,7 +703,7 @@ function updateAuthUi() {
   const button = document.querySelector("#authStatusBtn");
   if (!button) return;
   if (storageMode !== "cloud") {
-    button.textContent = "本地模式";
+    button.textContent = "本地数据库";
     button.disabled = true;
     return;
   }
