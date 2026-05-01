@@ -57,10 +57,8 @@
         </div>
         <div class="hero-actions">
           <button id="exportBtn" class="ghost-button" type="button">导出数据</button>
-          <label class="ghost-button file-button">
-            导入数据
-            <input id="importInput" type="file" accept="application/json" />
-          </label>
+          <button id="importBtn" class="ghost-button" type="button">导入数据</button>
+          <input id="importInput" type="file" accept="application/json" hidden />
         </div>
       </section>
       <div id="sectionTabs" class="section-tabs" aria-label="模块内切换"></div>
@@ -372,6 +370,6 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5.5 5.5 12l1.42 1.42L11 9.34V20h2V9.34l4.08 4.08L18.5 12 12 5.5Z" /></svg>
     </button>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=20260430-21"></script>
+    <script src="./app.js?v=20260501-05"></script>
   </body>
 </html>

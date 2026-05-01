@@ -4,6 +4,8 @@ const ACCENT_KEY = "peigen-nexus-accent";
 const CUSTOM_ACCENT_KEY = "peigen-nexus-custom-accent";
 const BACKUP_APP = "Peigen Nexus";
 const BACKUP_SCHEMA_VERSION = 1;
+const STATE_API = "/api/state";
+const EXPORT_API = "/api/export";
 
 const accentPresets = {
   appleBlue: { primary: "#007aff", primaryStrong: "#0057b8", accent: "#5ac8fa", label: "系统蓝" },
@@ -198,7 +200,7 @@ const courseSteps = [
     title: "建立关系维护动作库",
     summary: "将欣赏、分享、陪伴、推荐、支持、保护转化为可安排、可跟进的维护动作。",
     outputs: ["欣赏", "分享", "陪伴", "推荐", "支持", "保护"],
-    details: ["欣赏要具体到对方的能力、选择或价值观，不是泛泛夸奖。", "分享、推荐和支持要围绕对方当下的真实需求，而不是为了刷存在感。"],
+    details: ["表达认可时要具体到对方的能力、选择或价值观，不是泛泛夸奖。", "提供信息、资源或帮助时，要围绕对方当下的真实需求，而不是为了刷存在感。"],
   },
   {
     title: "设计关键人物触达",
@@ -216,13 +218,13 @@ const courseSteps = [
     title: "学会优雅求助",
     summary: "找成熟时机，用巧妙提问唤起指导欲，从小忙开始，并给对方退路。",
     outputs: ["告而不求", "分步实现", "方便对方"],
-    details: ["告而不求：先把你的处境、目标和已做努力说清楚，让对方知道你不是把问题丢给他；表达希望获得建议，而不是直接要求对方替你解决。", "分步实现：不要一上来请求大资源，先从一个建议、一次判断、一个小信息开始，让对方低成本参与。", "方便对方：给出明确选项、时间范围和退出空间，例如“如果不方便也完全没关系”，降低对方心理压力。"],
+    details: ["先把你的处境、目标和已做努力说清楚，让对方知道你不是把问题丢给他；表达希望获得建议，而不是直接要求对方替你解决。", "不要一上来请求大资源，先从一个建议、一次判断、一个小信息开始，让对方低成本参与。", "给出明确选项、时间范围和退出空间，例如“如果不方便也完全没关系”，降低对方心理压力。"],
   },
   {
     title: "利用场景杠杆扩展网络",
     summary: "通过会议、活动和社群提升触达效率，并以会后跟进沉淀长期关系。",
     outputs: ["会前", "会中", "会后"],
-    details: ["会前先明确要见谁、为什么见、准备什么问题，而不是到现场随机社交。", "会后 24 小时内把信息沉淀到档案，并安排下一次自然联系。"],
+    details: ["提前明确要见谁、为什么见、准备什么问题，而不是到现场随机社交。", "活动结束后 24 小时内把信息沉淀到档案，并安排下一次自然联系。"],
   },
   {
     title: "维护圈层健康度",
@@ -386,6 +388,7 @@ let activeView = "dashboard";
 let archiveInitialSnapshot = "";
 let archiveSavingFromPrompt = false;
 let archiveLayout = localStorage.getItem("peigen-nexus-archive-layout") || "card";
+let pendingServerSave = Promise.resolve();
 
 function normalizeState(parsed) {
   const strategy = {
@@ -473,6 +476,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  queueServerSave();
 }
 
 function createBackupPayload() {
@@ -517,6 +521,46 @@ function applyImportedSettings(settings = {}) {
   }
   initTheme();
   initAccent();
+}
+
+async function loadStateFromServer() {
+  const response = await fetch(STATE_API, { cache: "no-store" });
+  if (!response.ok) throw new Error("Unable to load state file");
+  const payload = await response.json();
+  const imported = readBackupPayload(payload);
+  state = imported.state;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  applyImportedSettings(imported.settings);
+  if (payload.data === null) await saveStateToServer();
+}
+
+async function saveStateToServer() {
+  const response = await fetch(STATE_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(createBackupPayload(), null, 2),
+  });
+  if (!response.ok) throw new Error("Unable to save state file");
+}
+
+function queueServerSave() {
+  pendingServerSave = pendingServerSave
+    .then(saveStateToServer)
+    .catch((error) => {
+      console.error(error);
+      showToast("本地数据文件保存失败，请确认本地服务正在运行");
+    });
+}
+
+function downloadBackupFile() {
+  const backup = createBackupPayload();
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `peigen-nexus-data-${todayISO()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function personById(id) {
@@ -828,6 +872,20 @@ function renderWhy() {
   document.querySelector("#whyContent").innerHTML = whySections.map(renderWhySection).join("");
 }
 
+function renderStepOutputs(step) {
+  if (!step.outputs?.length || (step.details?.length && step.outputs.length === step.details.length)) return "";
+  return `<div class="chip-row">${step.outputs.map((item) => `<span class="chip">${item}</span>`).join("")}</div>`;
+}
+
+function renderStepDetails(step) {
+  if (!step.details?.length) return "";
+  const paired = step.outputs?.length === step.details.length;
+  return `<ul class="timeline-detail-list">${step.details.map((item, index) => {
+    const label = paired ? `<strong>${step.outputs[index]}：</strong>` : "";
+    return `<li>${label}${item}</li>`;
+  }).join("")}</ul>`;
+}
+
 function renderWhySection(section) {
   const body = [
     section.lead ? `<p class="knowledge-lead">${section.lead}</p>` : "",
@@ -846,8 +904,8 @@ function renderWhySection(section) {
         <div>
           <h4>${step.title}</h4>
           <p>${step.summary}</p>
-          <div class="chip-row">${step.outputs.map((item) => `<span class="chip">${item}</span>`).join("")}</div>
-          ${step.details ? `<ul class="timeline-detail-list">${step.details.map((item) => `<li>${item}</li>`).join("")}</ul>` : ""}
+          ${renderStepOutputs(step)}
+          ${renderStepDetails(step)}
         </div>
       </div>
     `).join("")}</div>` : "",
@@ -1107,8 +1165,8 @@ function renderPlaybook() {
       <div>
         <h3>${step.title}</h3>
         <p class="muted">${step.summary}</p>
-        <ul>${step.outputs.map((item) => `<li>${item}</li>`).join("")}</ul>
-        ${step.details ? `<ul class="timeline-detail-list">${step.details.map((item) => `<li>${item}</li>`).join("")}</ul>` : ""}
+        ${renderStepOutputs(step)}
+        ${renderStepDetails(step)}
       </div>
     </article>
   `).join("");
@@ -1565,15 +1623,9 @@ document.querySelector("#taskForm").addEventListener("submit", (event) => {
 });
 
 document.querySelector("#exportBtn").addEventListener("click", () => {
-  const backup = createBackupPayload();
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `peigen-nexus-backup-${todayISO()}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
+  window.location.href = EXPORT_API;
 });
+document.querySelector("#importBtn").addEventListener("click", () => document.querySelector("#importInput").click());
 
 document.querySelector("#importInput").addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
@@ -1589,8 +1641,8 @@ document.querySelector("#importInput").addEventListener("change", async (event) 
     });
     if (!confirmed) return;
     state = imported.state;
-    saveState();
     applyImportedSettings(imported.settings);
+    saveState();
     render();
     showToast("备份数据已覆盖导入");
   } catch {
@@ -1603,4 +1655,9 @@ document.querySelector("#importInput").addEventListener("change", async (event) 
 initTheme();
 initAccent();
 renderSectionTabs(activeView);
-render();
+loadStateFromServer()
+  .catch((error) => {
+    console.error(error);
+    showToast("未连接本地数据服务，暂时使用浏览器缓存数据");
+  })
+  .finally(render);

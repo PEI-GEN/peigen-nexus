@@ -1,0 +1,60 @@
+{
+  "app": "Peigen Nexus",
+  "schemaVersion": 1,
+  "exportedAt": "2026-05-01T08:33:11.704Z",
+  "data": {
+    "strategy": {
+      "want": "打造一个能长期支持个人成长、职业机会和商业合作的连接系统。",
+      "serve": "服务那些与 AI 产品、社群运营、投资研究、个人品牌相关的关键人群。",
+      "need": "他们需要可信的信息、靠谱的连接、真实的一线反馈和长期互相支持的关系。",
+      "change": "因为我的连接和持续增值，他们能更快获得机会、资源、判断和合作伙伴。"
+    },
+    "people": [
+      {
+        "id": "c11b9633-8d7e-4404-973e-cd606675db74",
+        "name": "黄小龙",
+        "role": "发小",
+        "title": "预防医生",
+        "household": "安徽省马鞍山市含山县",
+        "residence": "南京中国药科大学",
+        "industry": "医生",
+        "ecosystem": "社区",
+        "tier": "密友",
+        "influence": "弱",
+        "closeness": "密",
+        "meetRecord": "第一次见面：小学四年级同一个班级",
+        "family": "有一个亲姐姐；\n张宇是他堂哥；",
+        "traits": "比较沉闷，不喜欢在网上说话，实则闷骚",
+        "work": "研究生，还没上班",
+        "hobbies": "打王者荣耀",
+        "details": "",
+        "inspiration": "以后在医院方面对我有帮助",
+        "lastInteraction": "2026-04-30"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "66d27009-bd2b-4368-9a75-d32734e9c396",
+        "personId": "c11b9633-8d7e-4404-973e-cd606675db74",
+        "type": "推荐",
+        "title": "1",
+        "dueDate": "2026-05-01",
+        "status": "pending"
+      },
+      {
+        "id": "6f177d4b-41bf-45e0-a1e7-0150c300b3a7",
+        "personId": "c11b9633-8d7e-4404-973e-cd606675db74",
+        "type": "陪伴",
+        "title": "见面邀约",
+        "dueDate": "2026-04-30",
+        "status": "done"
+      }
+    ]
+  },
+  "settings": {
+    "theme": "light",
+    "accent": "custom",
+    "customAccent": "#103565",
+    "archiveLayout": "card"
+  }
+}
