@@ -7,6 +7,25 @@ const BACKUP_SCHEMA_VERSION = 1;
 const CONFIG_API = "/api/config";
 const STATE_API = "/api/state";
 const EXPORT_API = "/api/export";
+const hasBrowser = typeof window !== "undefined" && typeof document !== "undefined";
+
+function storageGet(key) {
+  if (!hasBrowser) return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(key, value) {
+  if (!hasBrowser) return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage failures in restricted browser contexts.
+  }
+}
 
 const accentPresets = {
   appleBlue: { primary: "#007aff", primaryStrong: "#0057b8", accent: "#5ac8fa", label: "系统蓝" },
@@ -388,7 +407,7 @@ let state = loadState();
 let activeView = "dashboard";
 let archiveInitialSnapshot = "";
 let archiveSavingFromPrompt = false;
-let archiveLayout = localStorage.getItem("peigen-nexus-archive-layout") || "card";
+let archiveLayout = storageGet("peigen-nexus-archive-layout") || "card";
 let pendingServerSave = Promise.resolve();
 let storageMode = "local";
 let supabaseClient = null;
@@ -468,7 +487,7 @@ function normalizeCloseness(value) {
 }
 
 function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("networking-management-mvp");
+  const saved = storageGet(STORAGE_KEY) || storageGet("networking-management-mvp");
   if (!saved) return seedState;
 
   try {
@@ -479,7 +498,7 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  storageSet(STORAGE_KEY, JSON.stringify(state));
   queueDataSave();
 }
 
@@ -490,9 +509,9 @@ function createBackupPayload() {
     exportedAt: new Date().toISOString(),
     data: normalizeState(state),
     settings: {
-      theme: localStorage.getItem(THEME_KEY) || "light",
-      accent: localStorage.getItem(ACCENT_KEY) || "appleBlue",
-      customAccent: localStorage.getItem(CUSTOM_ACCENT_KEY) || "#155eef",
+      theme: storageGet(THEME_KEY) || "light",
+      accent: storageGet(ACCENT_KEY) || "appleBlue",
+      customAccent: storageGet(CUSTOM_ACCENT_KEY) || "#155eef",
       archiveLayout,
     },
   };
@@ -516,12 +535,12 @@ function readBackupPayload(payload) {
 }
 
 function applyImportedSettings(settings = {}) {
-  if (settings.theme) localStorage.setItem(THEME_KEY, settings.theme);
-  if (settings.accent) localStorage.setItem(ACCENT_KEY, settings.accent);
-  if (settings.customAccent) localStorage.setItem(CUSTOM_ACCENT_KEY, settings.customAccent);
+  if (settings.theme) storageSet(THEME_KEY, settings.theme);
+  if (settings.accent) storageSet(ACCENT_KEY, settings.accent);
+  if (settings.customAccent) storageSet(CUSTOM_ACCENT_KEY, settings.customAccent);
   if (settings.archiveLayout) {
     archiveLayout = settings.archiveLayout;
-    localStorage.setItem("peigen-nexus-archive-layout", archiveLayout);
+    storageSet("peigen-nexus-archive-layout", archiveLayout);
   }
   initTheme();
   initAccent();
@@ -533,7 +552,7 @@ async function loadStateFromServer() {
   const payload = await response.json();
   const imported = readBackupPayload(payload);
   state = imported.state;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  storageSet(STORAGE_KEY, JSON.stringify(state));
   applyImportedSettings(imported.settings);
   if (payload.data === null) await saveStateToServer();
 }
@@ -606,7 +625,7 @@ async function loadStateFromCloud() {
   if (data?.payload) {
     const imported = readBackupPayload(data.payload);
     state = imported.state;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storageSet(STORAGE_KEY, JSON.stringify(state));
     applyImportedSettings(imported.settings);
     return;
   }
@@ -1529,7 +1548,7 @@ async function deleteTask(id) {
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   document.querySelector("#themeLabel").textContent = theme === "dark" ? "浅色" : "深色";
-  localStorage.setItem(THEME_KEY, theme);
+  storageSet(THEME_KEY, theme);
 }
 
 function applyAccent(preset, customColor = "") {
@@ -1545,8 +1564,8 @@ function applyAccent(preset, customColor = "") {
   document.querySelector("#accentSelect").value = preset;
   document.querySelector("#customAccentInput").value = selected.primary;
   document.querySelector("#customAccentInput").classList.toggle("is-visible", preset === "custom");
-  localStorage.setItem(ACCENT_KEY, preset);
-  if (preset === "custom") localStorage.setItem(CUSTOM_ACCENT_KEY, selected.primary);
+  storageSet(ACCENT_KEY, preset);
+  if (preset === "custom") storageSet(CUSTOM_ACCENT_KEY, selected.primary);
 }
 
 function shiftHexColor(hex, amount) {
@@ -1561,15 +1580,15 @@ function shiftHexColor(hex, amount) {
 }
 
 function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
+  const saved = storageGet(THEME_KEY);
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
   applyTheme(saved || (prefersDark ? "dark" : "light"));
 }
 
 function initAccent() {
-  const savedPreset = localStorage.getItem(ACCENT_KEY) || "appleBlue";
+  const savedPreset = storageGet(ACCENT_KEY) || "appleBlue";
   const preset = savedPreset === "custom" || accentPresets[savedPreset] ? savedPreset : "appleBlue";
-  const customColor = localStorage.getItem(CUSTOM_ACCENT_KEY) || "#155eef";
+  const customColor = storageGet(CUSTOM_ACCENT_KEY) || "#155eef";
   applyAccent(preset, customColor);
 }
 
@@ -1583,6 +1602,7 @@ function render() {
   renderPlaybook();
 }
 
+if (hasBrowser) {
 document.querySelectorAll("[data-view]").forEach((button) => {
   button.addEventListener("click", () => setView(button.dataset.view));
 });
@@ -1713,7 +1733,7 @@ document.querySelector("#ecosystemFilter").addEventListener("change", renderArch
 document.querySelectorAll("[data-archive-layout]").forEach((button) => {
   button.addEventListener("click", () => {
     archiveLayout = button.dataset.archiveLayout;
-    localStorage.setItem("peigen-nexus-archive-layout", archiveLayout);
+    storageSet("peigen-nexus-archive-layout", archiveLayout);
     renderArchive();
   });
 });
@@ -1739,7 +1759,7 @@ document.querySelector("#themeToggle").addEventListener("click", () => {
 });
 document.querySelector("#accentSelect").addEventListener("change", (event) => {
   const preset = event.target.value;
-  const customColor = localStorage.getItem(CUSTOM_ACCENT_KEY) || document.querySelector("#customAccentInput").value;
+  const customColor = storageGet(CUSTOM_ACCENT_KEY) || document.querySelector("#customAccentInput").value;
   applyAccent(preset, customColor);
 });
 document.querySelector("#customAccentInput").addEventListener("input", (event) => {
@@ -1854,3 +1874,4 @@ initStorage()
     showToast("数据加载失败，暂时使用浏览器缓存数据");
   })
   .finally(render);
+}
