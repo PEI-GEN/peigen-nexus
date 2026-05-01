@@ -36,17 +36,19 @@ http://localhost:5173
 
 服务启动时会自动创建数据库和 `app_state` 表。首次启动会尝试把 `data/peigen-nexus-data.json` 中的旧数据迁移进 MySQL。
 
+首次打开页面时需要注册账号。注册后，系统会为该账号创建独立的数据记录；之后登录同一账号即可继续使用自己的数据。
+
 ## 数据存储
 
 用户数据保存在 MySQL：
 
 ```text
 database: peigen_nexus
+table: users
 table: app_state
-row id: default
 ```
 
-系统把完整应用状态保存为 JSON payload，导入数据会覆盖这条记录，导出数据会下载当前 payload。
+`users` 保存本地账号；`app_state` 按用户保存完整应用状态 JSON payload。导入数据会覆盖当前登录账号的数据，导出数据会下载当前登录账号的数据备份。
 
 `localStorage` 只作为页面临时兜底缓存，不作为主要数据源。
 

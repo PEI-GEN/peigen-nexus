@@ -2,6 +2,8 @@ const STORAGE_KEY = "peigen-nexus-state";
 const THEME_KEY = "peigen-nexus-theme";
 const ACCENT_KEY = "peigen-nexus-accent";
 const CUSTOM_ACCENT_KEY = "peigen-nexus-custom-accent";
+const AUTH_TOKEN_KEY = "peigen-nexus-auth-token";
+const AUTH_USER_KEY = "peigen-nexus-auth-user";
 const BACKUP_APP = "Peigen Nexus";
 const BACKUP_SCHEMA_VERSION = 1;
 const CONFIG_API = "/config.json";
@@ -21,7 +23,11 @@ function storageGet(key) {
 function storageSet(key, value) {
   if (!hasBrowser) return;
   try {
-    window.localStorage.setItem(key, value);
+    if (value === null || value === undefined || value === "") {
+      window.localStorage.removeItem(key);
+    } else {
+      window.localStorage.setItem(key, value);
+    }
   } catch {
     // Ignore storage failures in restricted browser contexts.
   }
@@ -547,7 +553,10 @@ function applyImportedSettings(settings = {}) {
 }
 
 async function loadStateFromServer() {
-  const response = await fetch(STATE_API, { cache: "no-store" });
+  const response = await fetch(STATE_API, {
+    cache: "no-store",
+    headers: authHeaders(),
+  });
   if (!response.ok) throw new Error("Unable to load state file");
   const payload = await response.json();
   const imported = readBackupPayload(payload);
@@ -560,10 +569,38 @@ async function loadStateFromServer() {
 async function saveStateToServer() {
   const response = await fetch(STATE_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(createBackupPayload(), null, 2),
   });
   if (!response.ok) throw new Error("Unable to save state file");
+}
+
+function authHeaders() {
+  const token = storageGet(AUTH_TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function setAuthSession(user, token) {
+  currentUser = user;
+  storageSet(AUTH_USER_KEY, JSON.stringify(user));
+  storageSet(AUTH_TOKEN_KEY, token);
+  updateAuthUi();
+}
+
+function clearAuthSession() {
+  currentUser = null;
+  storageSet(AUTH_USER_KEY, "");
+  storageSet(AUTH_TOKEN_KEY, "");
+  updateAuthUi();
+}
+
+function loadStoredUser() {
+  try {
+    const user = JSON.parse(storageGet(AUTH_USER_KEY) || "null");
+    currentUser = user?.id ? user : null;
+  } catch {
+    currentUser = null;
+  }
 }
 
 function queueServerSave() {
@@ -578,8 +615,13 @@ function queueServerSave() {
 async function initStorage() {
   try {
     storageMode = "local";
-    currentUser = null;
+    loadStoredUser();
     supabaseClient = null;
+    if (!currentUser || !storageGet(AUTH_TOKEN_KEY)) {
+      updateAuthUi();
+      openAuthDialog();
+      return;
+    }
     await loadStateFromServer();
     updateAuthUi();
   } catch (error) {
@@ -702,11 +744,6 @@ function showToast(message) {
 function updateAuthUi() {
   const button = document.querySelector("#authStatusBtn");
   if (!button) return;
-  if (storageMode !== "cloud") {
-    button.textContent = "本地数据库";
-    button.disabled = true;
-    return;
-  }
   button.disabled = false;
   button.textContent = currentUser?.email || "登录";
 }
@@ -719,7 +756,7 @@ function openAuthDialog() {
 }
 
 function requireCloudUser() {
-  if (storageMode !== "cloud" || currentUser) return true;
+  if (currentUser && storageGet(AUTH_TOKEN_KEY)) return true;
   openAuthDialog();
   showToast("请先登录后再继续操作");
   return false;
@@ -728,8 +765,16 @@ function requireCloudUser() {
 async function signIn() {
   const email = document.querySelector("#authEmail").value.trim();
   const password = document.querySelector("#authPassword").value;
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "登录失败");
+  setAuthSession(data.user, data.token);
+  await loadStateFromServer();
+  render();
   document.querySelector("#authDialog").close();
   showToast("登录成功");
 }
@@ -737,17 +782,22 @@ async function signIn() {
 async function signUp() {
   const email = document.querySelector("#authEmail").value.trim();
   const password = document.querySelector("#authPassword").value;
-  const { error } = await supabaseClient.auth.signUp({ email, password });
-  if (error) throw error;
+  const response = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "注册失败");
+  setAuthSession(data.user, data.token);
+  await loadStateFromServer();
+  render();
   document.querySelector("#authDialog").close();
-  showToast("注册成功，请按提示完成邮箱确认");
+  showToast("注册成功");
 }
 
 async function signOut() {
-  if (!supabaseClient) return;
-  await supabaseClient.auth.signOut();
-  currentUser = null;
-  updateAuthUi();
+  clearAuthSession();
   openAuthDialog();
 }
 
@@ -1691,7 +1741,6 @@ document.querySelector("#newTaskBtn").addEventListener("click", () => {
 });
 document.querySelector("#guideBtn").addEventListener("click", () => document.querySelector("#guideDialog").showModal());
 document.querySelector("#authStatusBtn").addEventListener("click", async () => {
-  if (storageMode !== "cloud") return;
   if (!currentUser) {
     openAuthDialog();
     return;
