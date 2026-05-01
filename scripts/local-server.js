@@ -2,7 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const rootDir = __dirname;
+const rootDir = path.resolve(__dirname, "..");
 const dataDir = path.join(rootDir, "data");
 const dataFile = path.join(dataDir, "peigen-nexus-data.json");
 const port = Number(process.env.PORT || 5173);
