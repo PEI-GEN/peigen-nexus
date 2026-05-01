@@ -67,7 +67,8 @@ SUPABASE_ANON_KEY=你的 Supabase anon public key
 │   └── supabase-schema.sql
 ├── index.html
 ├── styles.css
-├── app.js
+├── assets/
+│   └── app.js
 ├── server.js
 ├── package.json
 └── 人脉管理课程总结.md

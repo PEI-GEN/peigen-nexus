@@ -9,7 +9,7 @@
       "use": "@vercel/static"
     },
     {
-      "src": "app.js",
+      "src": "assets/**",
       "use": "@vercel/static"
     },
     {
@@ -27,8 +27,8 @@
       "dest": "/api/$1.js"
     },
     {
-      "src": "/app.js",
-      "dest": "/app.js"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
       "src": "/styles.css",
