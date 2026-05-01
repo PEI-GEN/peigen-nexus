@@ -1,7 +1,9 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
   "rewrites": [
     {
-      "source": "/((?!api/|assets/|ico/|styles.css|README.md).*)",
+      "source": "/((?!api/|assets/|ico/|styles.css|favicon.ico|favicon.png).*)",
       "destination": "/index.html"
     }
   ]
