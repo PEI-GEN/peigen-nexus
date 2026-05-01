@@ -1,7 +1,10 @@
 {
   "scripts": {
-    "build": "node scripts/build-static.js",
-    "vercel-build": "node scripts/build-static.js",
+    "build": "node scripts/write-config.js && vite build",
+    "dev": "vite --host 0.0.0.0",
     "start": "node scripts/local-server.js"
+  },
+  "devDependencies": {
+    "vite": "^5.4.21"
   }
 }
