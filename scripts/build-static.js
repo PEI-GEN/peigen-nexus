@@ -32,4 +32,10 @@ copyFile("styles.css");
 copyDir("assets");
 copyDir("ico");
 
+const config = {
+  supabaseUrl: process.env.SUPABASE_URL || "",
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+};
+fs.writeFileSync(path.join(output, "config.json"), JSON.stringify(config, null, 2), "utf8");
+
 console.log(`Static files prepared in ${output}`);

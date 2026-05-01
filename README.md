@@ -59,8 +59,8 @@ SUPABASE_ANON_KEY=你的 Supabase anon public key
 
 ```text
 .
-├── api/
-│   └── config.js
+├── public/
+│   └── config.json          # 构建时生成，不提交
 ├── data/
 │   └── peigen-nexus-data.json
 ├── docs/

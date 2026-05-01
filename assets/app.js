@@ -4,7 +4,7 @@ const ACCENT_KEY = "peigen-nexus-accent";
 const CUSTOM_ACCENT_KEY = "peigen-nexus-custom-accent";
 const BACKUP_APP = "Peigen Nexus";
 const BACKUP_SCHEMA_VERSION = 1;
-const CONFIG_API = "/api/config";
+const CONFIG_API = "/config.json";
 const STATE_API = "/api/state";
 const EXPORT_API = "/api/export";
 const hasBrowser = typeof window !== "undefined" && typeof document !== "undefined";
